@@ -1,0 +1,48 @@
+{
+  "name": "lightburn-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for the LightBurn REST API: read project and machine state, change cut settings, import files from any MCP client.",
+  "type": "module",
+  "bin": {
+    "lightburn-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SAFETY.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "lightburn",
+    "mcp",
+    "model-context-protocol",
+    "laser",
+    "millmage"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DerChris2011/Lightburn_MCP.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "express": "^5.1.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createRequire } from "node:module";
 import type { ToolContext } from "./tools/context.js";
 import { registerCutTools } from "./tools/cuts.js";
+import { registerFileTools } from "./tools/files.js";
 import { registerProjectTools } from "./tools/project.js";
 import { registerStateTools } from "./tools/state.js";
 
@@ -22,5 +23,6 @@ export function createServer(ctx: ToolContext): McpServer {
   registerStateTools(server, ctx);
   registerProjectTools(server, ctx);
   registerCutTools(server, ctx);
+  registerFileTools(server, ctx);
   return server;
 }

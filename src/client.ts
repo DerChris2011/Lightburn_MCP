@@ -126,7 +126,7 @@ export class LightBurnClient {
     const res = await this.request(path, {
       method: "POST",
       headers: { "Content-Type": "application/octet-stream", ...headers },
-      body,
+      body: new Blob([body as BlobPart]),
     });
     return (await res.json()) as T;
   }

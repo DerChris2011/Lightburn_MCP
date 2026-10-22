@@ -1,10 +1,12 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { LightBurnClient, LightBurnError } from "../client.js";
-import { loadConfig, portFor, saveConfig, secretSource, type Capability, type Config } from "../config.js";
+import { loadConfig, portFor, saveConfig, secretSource, updateConfigFile, type Capability, type Config } from "../config.js";
 
 export interface ToolContext {
   config: () => Config;
   saveConfig: (c: Config) => void;
+  /** Patch the stored file only; never persists environment overrides. */
+  updateConfigFile: (patch: Partial<Config>) => Config;
   /** A client built from the current config. */
   client: () => LightBurnClient;
   /** Throws a LightBurnError when the stored pairing cannot cover `cap`. */
@@ -17,6 +19,7 @@ export function createToolContext(overrides: Partial<ToolContext> = {}): ToolCon
   const base: ToolContext = {
     config: () => loadConfig(),
     saveConfig: (c) => saveConfig(c),
+    updateConfigFile: (patch) => updateConfigFile(patch),
     client: () => {
       const cfg = loadConfig();
       return new LightBurnClient({ host: cfg.host, port: portFor(cfg.product), secret: cfg.secret });

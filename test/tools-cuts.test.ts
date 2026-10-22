@@ -118,3 +118,15 @@ test("buildMaterialUpdate drops a galvo block for a gantry target and copies mat
     sub_layers: [{ index: 1, name: "L1", enabled: true, mode: "cut", params: { speed: 400 } }],
   });
 });
+
+test("buildMaterialUpdate whitelists image params and drops read-only dpi", () => {
+  const entry = {
+    guid: 9,
+    material: "Wood",
+    cut: { kind: "image", profile: "gantry", params: { speed: 200, max_power: 30, dpi: 254, dither_mode: "Stucki", cells_per_inch: 50, halftone_angle: 22, link_dpi_to_interval: true, laser1_enabled: true } },
+  };
+  const target = { kind: "image", profile: "gantry" };
+  const { body, droppedFields } = buildMaterialUpdate(entry as any, target as any);
+  expect(body).toEqual({ params: { speed: 200, max_power: 30, dither_mode: "Stucki", laser1_enabled: true } });
+  expect(droppedFields).toEqual(["dpi", "cells_per_inch", "halftone_angle", "link_dpi_to_interval"]);
+});

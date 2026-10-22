@@ -206,7 +206,7 @@ export class LightBurnClient {
         for (;;) {
           const { value, done } = await reader.read();
           if (done) return null;
-          buffer += decoder.decode(value, { stream: true });
+          buffer += decoder.decode(value, { stream: true }).replace(/\r\n?/g, "\n");
           let sep: number;
           while ((sep = buffer.indexOf("\n\n")) !== -1) {
             const block = buffer.slice(0, sep);

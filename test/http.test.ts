@@ -91,3 +91,16 @@ test("resolveHttpToken keeps other config fields when persisting", () => {
   expect(cfg.secret).toBe("s");
   expect(cfg.product).toBe("millmage");
 });
+
+test("rejects malformed JSON without a token with a plain 401, not a stack trace", async () => {
+  const url = await start();
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{not json" });
+  expect(res.status).toBe(401);
+  expect(await res.text()).not.toMatch(/at .*\.js:\d+/);
+});
+
+test("startHttpServer rejects with a clear message when the port is in use", async () => {
+  const url = await start();
+  const port = Number(new URL(url).port);
+  await expect(startHttpServer({ ctx: createToolContext(), host: "127.0.0.1", port, token: "t" })).rejects.toThrow(/Port \d+ is already in use/);
+});

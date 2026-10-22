@@ -42,7 +42,7 @@ macOS):
 npx github:DerChris2011/Lightburn_MCP setup
 ```
 
-The setup asks three things:
+The setup walks through four steps:
 
 1. **Application**: `lightburn` (default) or `millmage`.
 2. **Capabilities** to request. Default is all four:
@@ -164,6 +164,13 @@ with a reminder to review the settings in LightBurn.
   *Manage API Security → Show Secret…*, and start the server with
   `LIGHTBURN_SECRET=<secret> LIGHTBURN_HOST=<ip>`. Windows may ask once for a
   firewall rule.
+- **Server stops starting after a Node upgrade or `npm cache clean`** – the
+  client configs point at the Node binary and package folder found during
+  setup (GUI apps such as Claude Desktop have no PATH, so the full path is
+  needed). Re-run `npx github:DerChris2011/Lightburn_MCP config <client> --write`
+  to refresh them, or install globally with
+  `npm install -g github:DerChris2011/Lightburn_MCP` and use `lightburn-mcp`
+  as the command.
 - **Config/secret location** – Windows `%APPDATA%\lightburn-mcp\config.json`,
   macOS `~/Library/Application Support/lightburn-mcp/config.json`.
 

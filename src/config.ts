@@ -99,6 +99,29 @@ export function saveConfig(cfg: Config): void {
   }
 }
 
+/**
+ * Patches the stored file only. Unlike saveConfig(loadConfig()), this never
+ * writes values that came from environment overrides into the file.
+ */
+export function updateConfigFile(patch: Partial<Config>): Config {
+  const file = readFile();
+  const merged: Config = {
+    product: isProduct(file.product) ? file.product : "lightburn",
+    host: typeof file.host === "string" && file.host ? file.host : "localhost",
+    ...(typeof file.secret === "string" && file.secret ? { secret: file.secret } : {}),
+    ...(Array.isArray(file.capabilities) ? { capabilities: file.capabilities } : {}),
+    ...(typeof file.paired_at === "string" ? { paired_at: file.paired_at } : {}),
+    ...(typeof file.http_token === "string" && file.http_token ? { http_token: file.http_token } : {}),
+  };
+  const target = merged as unknown as Record<string, unknown>;
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) delete target[k];
+    else target[k] = v;
+  }
+  saveConfig(merged);
+  return merged;
+}
+
 export function secretSource(): "env" | "file" | "none" {
   if (process.env.LIGHTBURN_SECRET) return "env";
   const file = readFile();

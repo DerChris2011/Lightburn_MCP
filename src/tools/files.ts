@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import type { ImportResult, LightBurnClient } from "../client.js";
+import { LightBurnError, type ImportResult, type LightBurnClient } from "../client.js";
 import { secretSource } from "../config.js";
 import type { ToolContext } from "./context.js";
 
@@ -69,7 +69,16 @@ async function send(
     return { accepted, result: "unavailable" };
   }
   const wait = await client.waitForImport({ timeoutMs: Math.round(waitSeconds * 1000) });
-  await wait.ready;
+  try {
+    await wait.ready;
+  } catch (e) {
+    // An env-supplied secret may lack the state capability: upload without confirmation.
+    if (e instanceof LightBurnError && e.kind === "unauthorized") {
+      const accepted = await client.postRaw(endpoint, source.bytes, allHeaders);
+      return { accepted, result: "unavailable" };
+    }
+    throw e;
+  }
   const accepted = await client.postRaw(endpoint, source.bytes, allHeaders);
   const result = await wait.result;
   return { accepted, result };

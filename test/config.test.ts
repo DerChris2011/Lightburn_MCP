@@ -72,3 +72,13 @@ test("env overrides win over the file", () => {
   expect(cfg.product).toBe("millmage");
   expect(secretSource()).toBe("env");
 });
+
+test("updateConfigFile patches the file without persisting env overrides", async () => {
+  const { updateConfigFile } = await import("../src/config.js");
+  saveConfig({ product: "lightburn", host: "localhost", secret: "file-secret", capabilities: ["state"] });
+  process.env.LIGHTBURN_SECRET = "env-secret";
+  process.env.LIGHTBURN_HOST = "10.0.0.5";
+  updateConfigFile({ http_token: "tok" });
+  const raw = JSON.parse(fs.readFileSync(path.join(tmp, "config.json"), "utf8"));
+  expect(raw).toEqual({ product: "lightburn", host: "localhost", secret: "file-secret", capabilities: ["state"], http_token: "tok" });
+});

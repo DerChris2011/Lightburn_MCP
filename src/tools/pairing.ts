@@ -11,10 +11,9 @@ export async function pairAndStore(
   capabilities: Capability[],
   applicationName: string = DEFAULT_APP_NAME,
 ): Promise<{ status: "paired"; capabilities: Capability[]; paired_at: string }> {
-  const cfg = ctx.config();
   const secret = await ctx.client().connect(applicationName, capabilities);
   const paired_at = new Date().toISOString();
-  ctx.saveConfig({ ...cfg, secret, capabilities, paired_at });
+  ctx.updateConfigFile({ secret, capabilities, paired_at });
   return { status: "paired", capabilities, paired_at };
 }
 

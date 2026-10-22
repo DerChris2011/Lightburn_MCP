@@ -105,3 +105,12 @@ test("isReachable is true for the mock and false for a closed port", async () =>
   expect(await client().isReachable()).toBe(true);
   expect(await new LightBurnClient({ host: "127.0.0.1", port: 1 }).isReachable()).toBe(false);
 });
+
+test("waitForImport handles CRLF-framed SSE", async () => {
+  mock.fixtures.crlf = true;
+  const c = client();
+  const wait = await c.waitForImport({ timeoutMs: 5000 });
+  await wait.ready;
+  mock.emitEvent("file_imported", { success: true });
+  await expect(wait.result).resolves.toEqual({ success: true });
+});

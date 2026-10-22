@@ -41,8 +41,20 @@ function stripMachineBlocks(params: Record<string, any> | undefined, keep: strin
  * the sub-layers the target already has) onto a target cut. Machine blocks
  * are only kept when they match the target's profile.
  */
-export function buildMaterialUpdate(entry: LibraryEntry, target: Cut): { body: Record<string, unknown>; skippedMachineBlock: boolean } {
+/** Writable params of an image cut per cut-settings.md; everything else (dpi, halftone, ...) is read-only. */
+const IMAGE_WRITABLE = ["speed", "max_power", "dither_mode", "max_power_2", "laser1_enabled", "laser2_enabled", "alt_source", "q_pulse_width", "fiber_pulse_width"];
+
+export function buildMaterialUpdate(entry: LibraryEntry, target: Cut): { body: Record<string, unknown>; skippedMachineBlock: boolean; droppedFields: string[] } {
   const src = entry.cut ?? {};
+  const droppedFields: string[] = [];
+  if (target.kind === "image") {
+    const params: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(src.params ?? {})) {
+      if (IMAGE_WRITABLE.includes(k)) params[k] = v;
+      else droppedFields.push(k);
+    }
+    return { body: { params }, skippedMachineBlock: false, droppedFields };
+  }
   const keep = target.profile === "galvo" || target.profile === "gantry" ? (target.profile as string) : undefined;
   const base = stripMachineBlocks(src.params, keep);
   const body: Record<string, unknown> = {};
@@ -62,13 +74,13 @@ export function buildMaterialUpdate(entry: LibraryEntry, target: Cut): { body: R
         const out: Record<string, unknown> = { index: s.index };
         if (typeof s.name === "string") out.name = s.name;
         if (typeof s.enabled === "boolean") out.enabled = s.enabled;
-        if (typeof s.mode === "string") out.mode = s.mode;
+        if (s.mode === "cut" || s.mode === "scan" || s.mode === "offset") out.mode = s.mode;
         out.params = p.params;
         return out;
       });
     if (subs.length) body.sub_layers = subs;
   }
-  return { body, skippedMachineBlock: skipped };
+  return { body, skippedMachineBlock: skipped, droppedFields };
 }
 
 function withReview(ctx: ToolContext, data: unknown) {
@@ -145,7 +157,7 @@ export function registerCutTools(server: McpServer, ctx: ToolContext): void {
         if (candidates.length > 1) {
           const list = candidates.map((e) => ({ guid: e.guid, material: e.material, description: e.description, thickness: e.thickness }));
           return ctx.errorResult(
-            new Error(`"${material}" matches ${candidates.length} entries. Pick one by entry_guid or add thickness:\n${JSON.stringify(list, null, 2)}`),
+            new Error(`${entry_guid !== undefined ? `guid ${entry_guid}` : `"${material}"`} matches ${candidates.length} entries. Pick one by entry_guid or add thickness:\n${JSON.stringify(list, null, 2)}`),
           );
         }
         const entry = candidates[0];
@@ -163,11 +175,12 @@ export function registerCutTools(server: McpServer, ctx: ToolContext): void {
             ),
           );
         }
-        const { body, skippedMachineBlock } = buildMaterialUpdate(entry, target);
+        const { body, skippedMachineBlock, droppedFields } = buildMaterialUpdate(entry, target);
         const updated = await client.postJson(`/api/cuts/${index}`, body);
         return withReview(ctx, {
           applied_entry: { guid: entry.guid, material: entry.material, thickness: entry.thickness },
           skipped_machine_block: skippedMachineBlock,
+          ...(droppedFields.length ? { dropped_read_only_fields: droppedFields } : {}),
           cut: updated,
         });
       } catch (e) {

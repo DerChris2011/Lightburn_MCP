@@ -90,7 +90,7 @@ export async function runSetup(io: SetupIo, ctx: ToolContext, env: SetupEnv = de
     return 2;
   }
   const product = productAnswer as Product;
-  ctx.saveConfig({ ...ctx.config(), product });
+  ctx.updateConfigFile({ product });
 
   // 2. capabilities
   io.log(
@@ -238,7 +238,7 @@ export async function runCommand(args: ParsedArgs, ctx: ToolContext, io: CliIo, 
     case "token": {
       const cfg = ctx.config();
       if (args.flags.rotate || !cfg.http_token) {
-        const { token } = resolveHttpToken({ ...cfg, http_token: undefined });
+        const { token } = resolveHttpToken({ product: cfg.product, host: cfg.host });
         io.log(token);
         return 0;
       }

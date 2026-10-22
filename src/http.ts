@@ -5,7 +5,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type { Server as NodeServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { CliIo } from "./cli.js";
-import { saveConfig, type Config } from "./config.js";
+import { updateConfigFile, type Config } from "./config.js";
 import { createServer } from "./server.js";
 import type { ToolContext } from "./tools/context.js";
 
@@ -15,7 +15,7 @@ export function resolveHttpToken(cfg: Config, cliToken?: string): { token: strin
   if (cliToken) return { token: cliToken, generated: false };
   if (cfg.http_token) return { token: cfg.http_token, generated: false };
   const token = randomBytes(24).toString("base64url");
-  saveConfig({ ...cfg, http_token: token });
+  updateConfigFile({ http_token: token });
   return { token, generated: true };
 }
 
@@ -28,8 +28,6 @@ function tokenMatches(presented: string | undefined, expected: string): boolean 
 
 export async function startHttpServer(opts: { ctx: ToolContext; host: string; port: number; token: string }): Promise<{ url: string; close(): Promise<void> }> {
   const app = express();
-  app.use(express.json({ limit: "32mb" }));
-
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
   const authorized = (req: Request): boolean => {
@@ -39,11 +37,24 @@ export async function startHttpServer(opts: { ctx: ToolContext; host: string; po
     return tokenMatches(bearer, opts.token) || tokenMatches(pathToken, opts.token);
   };
 
-  const handle = async (req: Request, res: Response): Promise<void> => {
+  // Auth runs before any body parsing so unauthenticated callers get nothing but a 401.
+  const requireToken = (req: Request, res: Response, next: () => void): void => {
     if (!authorized(req)) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
+    next();
+  };
+  const parseJson = express.json({ limit: "32mb" });
+  const jsonErrors = (err: unknown, _req: Request, res: Response, next: (e?: unknown) => void): void => {
+    if (err) {
+      res.status(400).json({ jsonrpc: "2.0", error: { code: -32700, message: "Parse error: invalid JSON body" }, id: null });
+      return;
+    }
+    next();
+  };
+
+  const handle = async (req: Request, res: Response): Promise<void> => {
     const sessionId = req.headers["mcp-session-id"];
     const existing = typeof sessionId === "string" ? transports.get(sessionId) : undefined;
     if (existing) {
@@ -71,14 +82,19 @@ export async function startHttpServer(opts: { ctx: ToolContext; host: string; po
     res.status(400).json({ jsonrpc: "2.0", error: { code: -32000, message: "Bad Request: no valid session. Send an initialize request first." }, id: null });
   };
 
-  app.all("/mcp", handle);
-  app.all("/mcp/:token", handle);
+  app.all("/mcp", requireToken, parseJson, jsonErrors, handle);
+  app.all("/mcp/:token", requireToken, parseJson, jsonErrors, handle);
   app.use((_req, res) => {
     res.status(404).json({ error: "Not found. The MCP endpoint is /mcp" });
   });
 
-  const httpServer: NodeServer = await new Promise((resolve) => {
-    const s = app.listen(opts.port, opts.host, () => resolve(s));
+  const httpServer: NodeServer = await new Promise((resolve, reject) => {
+    const s = app.listen(opts.port, opts.host);
+    s.once("listening", () => resolve(s));
+    s.once("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "EADDRINUSE") reject(new Error(`Port ${opts.port} is already in use on ${opts.host}. Pass --port <N> to use another port.`));
+      else reject(err);
+    });
   });
   const { port } = httpServer.address() as AddressInfo;
   const hostForUrl = opts.host === "0.0.0.0" || opts.host === "::" ? "localhost" : opts.host;
@@ -102,7 +118,13 @@ export async function runHttpCommand(ctx: ToolContext, flags: Record<string, str
     return 2;
   }
   const { token, generated } = resolveHttpToken(ctx.config(), typeof flags.token === "string" ? flags.token : undefined);
-  const running = await startHttpServer({ ctx, host, port, token });
+  let running: Awaited<ReturnType<typeof startHttpServer>>;
+  try {
+    running = await startHttpServer({ ctx, host, port, token });
+  } catch (e) {
+    io.error((e as Error).message);
+    return 1;
+  }
   io.error(`LightBurn MCP listening on ${running.url}`);
   io.error(`Token required: header "Authorization: Bearer <token>" or URL ${running.url}/<token>`);
   if (generated) {

@@ -166,3 +166,14 @@ test("open_file reports a failed native open", async () => {
   expect(r.isError).toBe(true);
   expect(JSON.parse(h.text(r)).status).toBe("open_failed");
 });
+
+test("upload_file with an env secret that lacks state still uploads", async () => {
+  h = await startHarness({ capabilities: ["upload"], unpaired: true });
+  process.env.LIGHTBURN_SECRET = "harness-secret";
+  const r = await h.callTool("upload_file", { content: "<svg/>", filename: "a.svg", wait_seconds: 5 });
+  expect(r.isError).toBeFalsy();
+  const body = JSON.parse(h.text(r));
+  expect(body.status).toBe("accepted");
+  expect(body.note).toMatch(/confirmation/);
+  expect(h.mock.calls.some((c) => c.path === "/api/file/upload")).toBe(true);
+});

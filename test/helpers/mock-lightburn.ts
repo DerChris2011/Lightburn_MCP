@@ -17,6 +17,8 @@ export interface RecordedCall {
 
 export interface Fixtures {
   editorOpen: boolean;
+  /** Frame SSE with CRLF line endings. */
+  crlf: boolean;
   declinePairing: boolean;
   product: "lightburn" | "millmage";
   status: Record<string, unknown>;
@@ -134,6 +136,7 @@ export function defaultFixtures(): Fixtures {
   }
   return {
     editorOpen: false,
+    crlf: false,
     declinePairing: false,
     product: "lightburn",
     status: { connected: false, device_name: "Mock Laser", supports_z: false, supports_overrides: true },
@@ -303,7 +306,7 @@ export async function startMockLightBurn(opts: {
             return res.end(fixtures.overlayPng);
           case "/api/events":
             res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" });
-            res.write(":connected\n\n");
+            res.write(fixtures.crlf ? ":connected\r\n\r\n" : ":connected\n\n");
             sseClients.add(res);
             res.on("close", () => sseClients.delete(res));
             return;
@@ -361,7 +364,8 @@ export async function startMockLightBurn(opts: {
     calls,
     fixtures,
     emitEvent(name, data) {
-      for (const res of sseClients) res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
+      const nl = fixtures.crlf ? "\r\n" : "\n";
+      for (const res of sseClients) res.write(`event: ${name}${nl}data: ${JSON.stringify(data)}${nl}${nl}`);
     },
     async close() {
       for (const res of sseClients) res.end();

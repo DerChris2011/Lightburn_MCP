@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80mm" height="50mm" viewBox="0 0 80 50">
+  <rect x="0.5" y="0.5" width="79" height="49" rx="4" ry="4" fill="none" stroke="#ff0000" stroke-width="0.2"/>
+  <circle cx="6" cy="6" r="1.5" fill="none" stroke="#ff0000" stroke-width="0.2"/>
+  <circle cx="74" cy="6" r="1.5" fill="none" stroke="#ff0000" stroke-width="0.2"/>
+  <text x="40" y="30" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#0000ff">LightBurn MCP</text>
+</svg>

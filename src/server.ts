@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createRequire } from "node:module";
+import { INSTRUCTIONS, registerKnowledge } from "./knowledge/index.js";
 import type { ToolContext } from "./tools/context.js";
 import { registerCutTools } from "./tools/cuts.js";
 import { registerFileTools } from "./tools/files.js";
@@ -15,12 +16,9 @@ export const SERVER_VERSION: string = pkg.version;
 export function createServer(ctx: ToolContext): McpServer {
   const server = new McpServer(
     { name: "lightburn-mcp", version: SERVER_VERSION },
-    {
-      instructions:
-        "Tools for the LightBurn / MillMage REST API. The API cannot start, stop or move the machine. " +
-        "Any cut setting changed through this server must be reviewed by the operator in LightBurn before running a job.",
-    },
+    { instructions: INSTRUCTIONS },
   );
+  registerKnowledge(server);
   registerPairingTools(server, ctx);
   registerStateTools(server, ctx);
   registerProjectTools(server, ctx);

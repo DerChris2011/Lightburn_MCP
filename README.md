@@ -199,6 +199,31 @@ Add `https://<your-tunnel-host>/mcp/<token>` as a custom connector in ChatGPT
 Values follow LightBurn's display units (`get_units`). Every write tool ends with
 *"Review these settings in LightBurn before running the job."*
 
+## Built-in LightBurn knowledge
+
+Tools alone make an assistant guess. The server therefore also ships what it should
+*know*, so answers are grounded in how LightBurn and your laser actually work:
+
+- **Server instructions** every client receives on connect: read units first, use the
+  cuts' `in_use`, read a cut before changing it, set `override_frequency` with
+  `frequency`, treat Ruida's `connected: false` as normal, always end a change with the
+  review reminder.
+- **Six knowledge resources** (`lightburn://knowledge/…`) the assistant can read on
+  demand: API rules and pitfalls · cut settings explained (modes, sub-layers, min/max
+  power, kerf, interval/DPI, dither modes) · laser types (diode, CO2, Q-switched fiber,
+  MOPA fiber with pulse width, UV, dual-source) · galvo specifics (frequency, timing
+  constants, jump settings, wobble, deep engraving, annealing, colour marking) · gantry
+  specifics (power ramping, air assist, PPI, lead-in, cut-through, overcut) · workflows
+  (summarise, review, change, apply material, SVG import with mm units and the
+  colour-to-layer palette).
+- **Three prompts** your client can offer as one-click actions: `summarize_project`,
+  `review_cut_settings` (with material and goal), `prepare_import` (description and
+  position).
+
+The knowledge gives orders of magnitude for plausibility checks, not recipes. It tells
+the assistant to prefer **your** material library and existing layers over any table,
+and never to present a value as correct for your machine.
+
 ## How it works
 
 ```mermaid

@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import type { ToolContext } from "./tools/context.js";
 import { registerCutTools } from "./tools/cuts.js";
 import { registerFileTools } from "./tools/files.js";
+import { registerPairingTools } from "./tools/pairing.js";
 import { registerProjectTools } from "./tools/project.js";
 import { registerStateTools } from "./tools/state.js";
 
@@ -20,6 +21,7 @@ export function createServer(ctx: ToolContext): McpServer {
         "Any cut setting changed through this server must be reviewed by the operator in LightBurn before running a job.",
     },
   );
+  registerPairingTools(server, ctx);
   registerStateTools(server, ctx);
   registerProjectTools(server, ctx);
   registerCutTools(server, ctx);

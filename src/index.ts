@@ -1,2 +1,11 @@
 #!/usr/bin/env node
-console.error("lightburn-mcp 0.1.0");
+import { main } from "./cli.js";
+
+main(process.argv.slice(2))
+  .then((code) => {
+    process.exitCode = code;
+  })
+  .catch((err: unknown) => {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exitCode = 1;
+  });
